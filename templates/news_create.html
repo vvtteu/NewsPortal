@@ -1,0 +1,14 @@
+{% extends 'flatpages/default.html' %}
+
+{% block content %}
+<h1 class="mt-3">На данной страничке вы можете добавить собственную новость!</h1>
+
+<hr>
+<div class="mt-5">
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Save">
+</form>
+</div>
+{% endblock %}
