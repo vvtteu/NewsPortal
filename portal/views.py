@@ -1,12 +1,19 @@
 from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
 )
+from django.contrib.auth.mixins import PermissionRequiredMixin
+
 from .models import *
 from .filters import PostFilter
 from .forms import *
 from datetime import datetime
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
+
+
 
 class PostList(ListView):
     model = Post
@@ -27,7 +34,7 @@ class PostList(ListView):
         return context
 
 
-class PostDetail(DetailView):
+class PostDetail(LoginRequiredMixin, DetailView): 
     model = Post
     template_name = 'new.html' 
     context_object_name = 'post'
@@ -50,7 +57,11 @@ class SearchPosts(ListView):
         return self.filterset.qs
 
 
-class NewsCreate(CreateView):
+class NewsCreate(LoginRequiredMixin, PermissionRequiredMixin, CreateView): 
+    permission_required = ('portal.add_post',
+                           'portal.change_post',
+                           'portal.delete_post'
+                           )
     model = Post
     template_name = 'news_create.html'
     form_class = PostForm
@@ -61,7 +72,12 @@ class NewsCreate(CreateView):
         return super().form_valid(form)
     
 
-class ArticleCreate(CreateView):
+class ArticleCreate(LoginRequiredMixin, PermissionRequiredMixin, CreateView):  
+    permission_required = ('portal.add_post',
+                           'portal.change_post',
+                           'portal.delete_post'
+                           )
+    
     model = Post
     template_name = 'article_create.html'
     form_class = PostForm
@@ -72,27 +88,61 @@ class ArticleCreate(CreateView):
         return super().form_valid(form)
 
 
-class ArticleUpdate(UpdateView):
+class ArticleUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    permission_required = ('portal.add_post',
+                           'portal.change_post',
+                           'portal.delete_post'
+                           )
     form_class = PostForm
     model = Post
     template_name = 'article_edit.html'
 
 
-class ArticleDelete(DeleteView):
+class ArticleDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    permission_required = ('portal.add_post',
+                           'portal.change_post',
+                           'portal.delete_post'
+                           )
     model = Post
     template_name = 'article_delete.html'
     success_url = reverse_lazy('post_list')
 
 
-class NewsUpdate(UpdateView):
+class NewsUpdate(LoginRequiredMixin, UpdateView):
+    permission_required = ('portal.add_post',
+                           'portal.change_post',
+                           'portal.delete_post'
+                           )
     form_class = PostForm
     model = Post
     template_name = 'news_edit.html'
 
-    
 
-class NewsDelete(DeleteView):
+class NewsDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+    permission_required = ('portal.add_post',
+                           'portal.change_post',
+                           'portal.delete_post'
+                           )
     model = Post
     template_name = 'news_delete.html'
     success_url = reverse_lazy('post_list')
-    
+
+
+
+#для лк и стать автором
+
+def personal_account_view(request):
+    is_not_author = not request.user.groups.filter(name='authors').exists()
+    return render(request, 'account/lk.html', {
+        'username': request.user.username,
+        'is_not_author': is_not_author
+    })
+
+
+@login_required
+def upgrade_me(request):
+    user = request.user
+    premium_group = Group.objects.get(name='authors')
+    if not request.user.groups.filter(name='authors').exists():
+        premium_group.user_set.add(user)
+    return redirect('lk')
