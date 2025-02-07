@@ -1,56 +1,67 @@
-{% extends 'flatpages/default.html' %} 
+{% extends 'flatpages/default.html' %}
 {% load custom_filters %}
 {% load custom_tags %}
 
-
-{% block title%} News {% endblock title %} 
-
+{% block title%} News {% endblock title %}
 
 {% block content %}
-<h1 class="mt-3">Все посты представлены здесь!</h1>
-<p>На нашем сайте уже целых {{ all_posts }} статьи!</p>
-
-
-<!-- Перенесено в отдельный файл -->
-<!-- <form action="" method="get" >
-  <input type="text" name="title" placeholder="Поиск по заголовку">
-  <input type="text" name="author" placeholder="Введите id автора">
-  <input type="date" name="created_at" placeholder="Выберите дату">
-  <input type="submit" value="Найти" />
-</form> -->
-
+<div>
+  <div class="m-3">
+    <h1 class="mt-3">Все посты представлены здесь!</h1>
+    <p>На нашем сайте уже целых {{ all_posts }} статьи!</p>
+    <form method="get">
+      <select name="category">
+          {% for category in categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+      </select>
+      <input type="submit" value="Фильтровать" />
+    </form>
+  </div>
+  <hr>
+  <h4 class="mt-3">Подпишитесь на любимые категории!</h1>
+  <div class="m-3 d-flex justify-content-center">
+    {% for category in categories %}
+    <div class="mt-4 mx-3 ">
+    <h5>{{ category.name }}</h3>
+      <form method="post" action="{% url 'subscribe' %}">
+          {% csrf_token %}
+          <input type="hidden" name="category" value="{{ category.id }}">
+          <input type="submit" value="Подписаться">
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 
 <hr>
+
 {% if post_list %} 
   {% for post in post_list %}
-
   <h3>Статья {{ post.id }}: {{ post.title }}</h3>
   <h5>Дата публикации: {{ post.created_at }}</h5>
   <p>{{ post.text|truncatewords:3|censored }}</p>
-
   {% endfor %}
-
-  {% else %}
+{% else %}
   <h2>Товаров нет!</h2>
 {% endif %}
 
-  {% if page_obj.has_previous %}
-       {# Для каждой ссылки пагинации указываем обработку через новый тег #}
-       <a href="?{% url_replace page=1 %}">1</a>
-       {% if page_obj.previous_page_number != 1 %}
-           ...
-           <a href="?{% url_replace page=page_obj.previous_page_number %}">{{ page_obj.previous_page_number }}</a>
-       {% endif %}
+{% if page_obj.has_previous %}
+   <a href="?{% url_replace page=1 %}">1</a>
+   {% if page_obj.previous_page_number != 1 %}
+       ...
+       <a href="?{% url_replace page=page_obj.previous_page_number %}">{{ page_obj.previous_page_number }}</a>
    {% endif %}
+{% endif %}
 
-   {{ page_obj.number }}
+{{ page_obj.number }}
 
-   {% if page_obj.has_next %}
-       <a href="?{% url_replace page=page_obj.next_page_number %}">{{ page_obj.next_page_number }}</a>
-       {% if paginator.num_pages != page_obj.next_page_number %}
-           ...
-           <a href="?{% url_replace page=page_obj.paginator.num_pages %}">{{ page_obj.paginator.num_pages }}</a>
-       {% endif %}
+{% if page_obj.has_next %}
+   <a href="?{% url_replace page=page_obj.next_page_number %}">{{ page_obj.next_page_number }}</a>
+   {% if paginator.num_pages != page_obj.next_page_number %}
+       ...
+       <a href="?{% url_replace page=page_obj.paginator.num_pages %}">{{ page_obj.paginator.num_pages }}</a>
    {% endif %}
+{% endif %}
 
 {% endblock content %}

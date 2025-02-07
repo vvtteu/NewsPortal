@@ -1,8 +1,18 @@
 from django import forms
+from .models import Subscriber
 from django.core.exceptions import ValidationError
 from allauth.account.forms import SignupForm
 from django.contrib.auth.models import Group
 from .models import Post
+from django.conf import settings
+from django.core.mail import send_mail
+from django.urls import reverse
+
+class SubscriptionForm(forms.ModelForm):
+    class Meta:
+        model = Subscriber
+        fields = ['category']
+
 
 class PostForm(forms.ModelForm):
     text = forms.CharField(min_length=20)
@@ -40,3 +50,4 @@ class BasicSignupForm(SignupForm):
         basic_group = Group.objects.get(name='common')
         basic_group.user_set.add(user)
         return user
+

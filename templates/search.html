@@ -12,6 +12,11 @@
   <input type="text" name="title" placeholder="Поиск по заголовку">
   <input type="text" name="author" placeholder="Введите id автора">
   <input type="date" name="created_at" placeholder="Выберите дату">
+  <select name="categories">
+    {% for category in categories %}
+        <option value="{{ category.id }}">{{ category.name }}</option>
+    {% endfor %}
+</select>
   <input type="submit" value="Найти" />
 </form>
 
@@ -47,5 +52,8 @@
            <a href="?{% url_replace page=page_obj.paginator.num_pages %}">{{ page_obj.paginator.num_pages }}</a>
        {% endif %}
    {% endif %}
+
+
+
 
 {% endblock content %}

@@ -11,7 +11,7 @@ urlpatterns = [
    path('article/<int:pk>/delete/', ArticleDelete.as_view(), name='articles_delete'),
    path('news/<int:pk>/edit/', NewsUpdate.as_view(), name='news_edit'),
    path('news/<int:pk>/delete/', NewsDelete.as_view(), name='news_delete'),
-   path('upgrade/', upgrade_me, name = 'upgrade_me'),
+   path('upgrade/', upgrade_me, name='upgrade_me'),
    path('lk/', personal_account_view, name='lk'),
-   
+   path('subscribe/', subscribe_to_category, name='subscribe'),
 ]

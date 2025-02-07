@@ -5,15 +5,16 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
 )
 from django.contrib.auth.mixins import PermissionRequiredMixin
-
+# from django.core.mail import send_mail
+# from django.conf import settings
+from django.utils import timezone
+from django.contrib.auth.models import Group
 from .models import *
 from .filters import PostFilter
 from .forms import *
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
-
-
 
 class PostList(ListView):
     model = Post
@@ -31,8 +32,8 @@ class PostList(ListView):
         context['filterset'] = self.filterset
         context['time_created'] = datetime.utcnow()
         context['all_posts'] = self.get_queryset().count()
+        context['categories'] = Category.objects.all() 
         return context
-
 
 class PostDetail(LoginRequiredMixin, DetailView): 
     model = Post
@@ -43,7 +44,6 @@ class PostDetail(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['time_created'] = datetime.utcnow()
         return context
-
 
 class SearchPosts(ListView):
     model = Post
@@ -56,7 +56,6 @@ class SearchPosts(ListView):
         self.filterset = PostFilter(self.request.GET, queryset=queryset)
         return self.filterset.qs
 
-
 class NewsCreate(LoginRequiredMixin, PermissionRequiredMixin, CreateView): 
     permission_required = ('portal.add_post',
                            'portal.change_post',
@@ -67,10 +66,17 @@ class NewsCreate(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     form_class = PostForm
 
     def form_valid(self, form):
+        today = timezone.now().date()
+        news_count = Post.objects.filter(author=self.request.user, created_at__date=today).count()
+
+        if news_count >= 3:
+            form.add_error(None, 'Вы не можете публиковать более 3 новостей в сутки.')
+            return self.form_invalid(form)
+
         post = form.save(commit=False)
         post.post_type = 'news'
+        post.save()  
         return super().form_valid(form)
-    
 
 class ArticleCreate(LoginRequiredMixin, PermissionRequiredMixin, CreateView):  
     permission_required = ('portal.add_post',
@@ -87,7 +93,6 @@ class ArticleCreate(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
         post.post_type = 'article'
         return super().form_valid(form)
 
-
 class ArticleUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     permission_required = ('portal.add_post',
                            'portal.change_post',
@@ -96,7 +101,6 @@ class ArticleUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     form_class = PostForm
     model = Post
     template_name = 'article_edit.html'
-
 
 class ArticleDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = ('portal.add_post',
@@ -107,7 +111,6 @@ class ArticleDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     template_name = 'article_delete.html'
     success_url = reverse_lazy('post_list')
 
-
 class NewsUpdate(LoginRequiredMixin, UpdateView):
     permission_required = ('portal.add_post',
                            'portal.change_post',
@@ -116,7 +119,6 @@ class NewsUpdate(LoginRequiredMixin, UpdateView):
     form_class = PostForm
     model = Post
     template_name = 'news_edit.html'
-
 
 class NewsDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     permission_required = ('portal.add_post',
@@ -127,17 +129,12 @@ class NewsDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     template_name = 'news_delete.html'
     success_url = reverse_lazy('post_list')
 
-
-
-#для лк и стать автором
-
 def personal_account_view(request):
     is_not_author = not request.user.groups.filter(name='authors').exists()
     return render(request, 'account/lk.html', {
         'username': request.user.username,
         'is_not_author': is_not_author
     })
-
 
 @login_required
 def upgrade_me(request):
@@ -146,3 +143,13 @@ def upgrade_me(request):
     if not request.user.groups.filter(name='authors').exists():
         premium_group.user_set.add(user)
     return redirect('lk')
+
+@login_required
+def subscribe_to_category(request):
+    if request.method == 'POST':
+        category_id = request.POST.get('category')
+        category = Category.objects.get(id=category_id)
+        subscriber, created = Subscriber.objects.get_or_create(user=request.user, category=category)
+        if created:
+            return redirect('/')
+    return redirect('/') 
